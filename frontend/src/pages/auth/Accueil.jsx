@@ -16,16 +16,16 @@ function Accueil() {
   ]
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col items-center pt-16 gap-12 px-6">
+    <div className="min-h-screen bg-neutral-50 flex flex-col items-center pt-8 sm:pt-16 gap-8 sm:gap-12 px-4 sm:px-6">
        {/* Logos en haut */}
       <div className="flex items-center gap-8">
-        <img src={hcpLogo} alt="HCP" className="h-32 object-contain mb-4" />
+        <img src={hcpLogo} alt="HCP" className="h-20 sm:h-32 object-contain mb-4" />
       </div>
-      <h1 className="text-xl font-medium text-primary-dark">
+      <h1 className="text-2xl sm:text-3xl font-semibold text-primary-dark text-center">
         Plateforme de gestion des stages
       </h1>
 
-      <div className="grid grid-cols-3 gap-4 max-w-2xl w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full">
         {espaces.map((espace) => (
           <div
             key={espace.role}
