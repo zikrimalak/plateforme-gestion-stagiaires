@@ -14,6 +14,10 @@ import StagiaireDashboard from "./pages/stagiaire/StagiaireDashboard";
 import StagiaireSujets from "./pages/stagiaire/StagiaireSujets";
 import StagiaireSuiviHebdo from "./pages/stagiaire/StagiaireSuiviHebdo";
 import StagiaireDepotDocument from "./pages/stagiaire/StagiaireDepotDocument";
+import EncadrantDashboard from "./pages/encadrant/EncadrantDashboard";
+import EncadrantCandidatures from "./pages/encadrant/EncadrantCandidatures";
+import EncadrantDocuments from "./pages/encadrant/EncadrantDocuments";
+import EncadrantSuiviHebdo from "./pages/encadrant/EncadrantSuiviHebdo";
 import './index.css'
 
 function App() {
@@ -34,6 +38,10 @@ function App() {
 <Route path="/stagiaire/sujets" element={<StagiaireSujets />} />
 <Route path="/stagiaire/suivihebdo" element={<StagiaireSuiviHebdo />} />
 <Route path="/stagiaire/depot-document" element={<StagiaireDepotDocument />}/>
+<Route path="/encadrant/dashboard" element={<EncadrantDashboard />}/>
+<Route path="/encadrant/candidatures" element={<EncadrantCandidatures />} />
+<Route path="/encadrant/documents" element={<EncadrantDocuments />} />
+<Route path="/encadrant/suivi-hebdo" element={<EncadrantSuiviHebdo />} />
     </Routes>
   )
 }

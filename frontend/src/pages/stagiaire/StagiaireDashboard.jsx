@@ -14,7 +14,7 @@ import ActionCard from "../../components/common/ActionCard";
 // TODO: remplacer par un vrai fetch axios une fois le backend branché
 const sujetAffecte = {
   titre: "Développement d'une plateforme de gestion des stagiaires",
-  encadrant: "Anas Bodor",
+  encadrant:{ nom: "Anas Bodor", email: "anas.bodor@hcp.ma", telephone: "0661 23 45 67" },
 };
 // Pour tester le cas "pas encore affecté", mets sujetAffecte à null
 
@@ -55,7 +55,13 @@ export default function StagiaireDashboard() {
                 Sujet : <span className="font-medium">{sujetAffecte.titre}</span>
               </p>
               <p className="text-neutral-600 text-sm">
-                Encadrant : <span className="font-medium">{sujetAffecte.encadrant}</span>
+                Encadrant : <span className="font-medium">{sujetAffecte.encadrant.nom}</span>
+              </p>
+               <p className="text-neutral-600 text-sm">
+                Email : <span className="font-medium">{sujetAffecte.encadrant.email}</span>
+              </p>
+               <p className="text-neutral-600 text-sm">
+                Telephone : <span className="font-medium">{sujetAffecte.encadrant.telephone}</span>
               </p>
             </div>
           </div>
