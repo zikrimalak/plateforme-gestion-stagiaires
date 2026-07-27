@@ -81,7 +81,7 @@ export default function AdminAjouterEncadrant() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="prenom.nom@hcp.ma"
+                  placeholder="@hcp.ma"
                   value={form.email}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${

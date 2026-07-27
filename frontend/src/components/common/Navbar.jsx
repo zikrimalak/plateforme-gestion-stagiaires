@@ -3,12 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { User, Menu, X } from 'lucide-react'
 import hcpLogo from '../../assets/logohcp.jpg'
 
-function Navbar() {
+function Navbar({ role = 'Admin' }) {
   const navigate = useNavigate()
   const [menuOuvert, setMenuOuvert] = useState(false)
 
+  const cheminsDashboard = {
+    Admin: '/admin/dashboard',
+    Encadrant: '/encadrant/dashboard',
+    Stagiaire: '/stagiaire/dashboard',
+  }
+
   const liens = [
-    { label: 'Accueil', path: '/admin/dashboard' },
+    { label: 'Accueil', path: cheminsDashboard[role] },
     { label: 'À propos', path: '/admin/a-propos' },
   ]
 
@@ -41,13 +47,13 @@ function Navbar() {
           ))}
         </div>
 
-        {/* Groupe droite : profil admin + bouton hamburger (mobile only) */}
+        {/* Groupe droite : profil + bouton hamburger (mobile only) */}
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 rounded-full pl-2 pr-3 py-1.5 transition-colors">
             <div className="bg-primary rounded-full p-1.5">
               <User size={16} className="text-white" />
             </div>
-            <span className="hidden sm:block text-sm font-medium text-primary-dark">Admin</span>
+            <span className="hidden sm:block text-sm font-medium text-primary-dark">{role}</span>
           </button>
 
           {/* Bouton hamburger — visible seulement sur mobile */}

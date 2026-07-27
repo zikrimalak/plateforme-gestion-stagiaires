@@ -10,6 +10,10 @@ import AdminSupprimerEncadrant from './pages/admin/AdminSupprimerEncadrant'
 import AdminAjouterSujet from './pages/admin/AdminAjouterSujet'
 import AdminModifierSujet from './pages/admin/AdminModifierSujet'
 import AdminSupprimerSujet from './pages/admin/AdminSupprimerSujet'
+import StagiaireDashboard from "./pages/stagiaire/StagiaireDashboard";
+import StagiaireSujets from "./pages/stagiaire/StagiaireSujets";
+import StagiaireSuiviHebdo from "./pages/stagiaire/StagiaireSuiviHebdo";
+import StagiaireDepotDocument from "./pages/stagiaire/StagiaireDepotDocument";
 import './index.css'
 
 function App() {
@@ -26,6 +30,10 @@ function App() {
 <Route path="/admin/sujets/ajouter" element={<AdminAjouterSujet />} />
 <Route path="/admin/sujets/modifier" element={<AdminModifierSujet />} />
 <Route path="/admin/sujets/supprimer" element={<AdminSupprimerSujet />} />
+<Route path="/stagiaire/dashboard" element={<StagiaireDashboard />} />
+<Route path="/stagiaire/sujets" element={<StagiaireSujets />} />
+<Route path="/stagiaire/suivihebdo" element={<StagiaireSuiviHebdo />} />
+<Route path="/stagiaire/depot-document" element={<StagiaireDepotDocument />}/>
     </Routes>
   )
 }
