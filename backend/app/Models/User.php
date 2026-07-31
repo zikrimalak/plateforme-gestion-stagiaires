@@ -3,15 +3,14 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -19,9 +18,14 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'nom',
+        'prenom',
         'email',
+        'telephone',
         'password',
+        'role',
+        'filiere',
+        'departement',
     ];
 
     /**
@@ -45,5 +49,44 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // ─────────────────────────────
+    // Relations
+    // ─────────────────────────────
+
+    public function sujetsEncadres()
+    {
+        return $this->hasMany(Sujet::class, 'encadrant_id');
+    }
+
+    public function candidatures()
+    {
+        return $this->hasMany(Candidature::class, 'stagiaire_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(Document::class, 'stagiaire_id');
+    }
+
+    public function compte()
+    {
+        return $this->hasOne(Compte::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function remarquesRecues()
+    {
+        return $this->hasMany(Remarque::class, 'stagiaire_id');
+    }
+
+    public function remarquesEcrites()
+    {
+        return $this->hasMany(Remarque::class, 'encadrant_id');
     }
 }
