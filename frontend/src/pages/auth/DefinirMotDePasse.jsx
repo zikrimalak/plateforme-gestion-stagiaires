@@ -42,7 +42,7 @@ function DefinirMotDePasse() {
 
     setChargement(true)
     try {
-      await api.post(`/activer-compte/${token}`, { password: motDePasse })
+      await api.post(`/activer-compte/${token}`, { password: motDePasse, password_confirmation: confirmation, })
       setSucces(true)
       setTimeout(() => navigate('/login/stagiaire'), 2000)
     } catch (err) {

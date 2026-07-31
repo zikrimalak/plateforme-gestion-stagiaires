@@ -2,19 +2,43 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Phone, GraduationCap, Save } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
+import api from "../../services/api";
 
 export default function AdminAjouterStagiaire() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ nom: "", prenom: "", email: "", telephone: "", filiere: "" });
+  const [chargement, setChargement] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [succes, setSucces] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: appel axios vers le backend
-    console.log(form);
+    setErreur("");
+    setSucces("");
+    setChargement(true);
+
+    try {
+      await api.post("/admin/utilisateurs", {
+        ...form,
+        role: "stagiaire",
+      });
+      setSucces("Stagiaire ajouté avec succès ! Un email d'activation lui a été envoyé.");
+      setForm({ nom: "", prenom: "", email: "", telephone: "", filiere: "" });
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const erreurs = err.response.data.errors;
+        const premiereErreur = Object.values(erreurs)[0][0];
+        setErreur(premiereErreur);
+      } else {
+        setErreur("Une erreur est survenue, réessayez.");
+      }
+    } finally {
+      setChargement(false);
+    }
   };
 
   return (
@@ -104,12 +128,16 @@ export default function AdminAjouterStagiaire() {
               />
             </div>
 
+            {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+            {succes && <p className="text-sm text-green-600">{succes}</p>}
+
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02]"
+              disabled={chargement}
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
             >
               <Save size={18} />
-              Enregistrer le stagiaire
+              {chargement ? "Enregistrement..." : "Enregistrer le stagiaire"}
             </button>
           </form>
         </div>

@@ -62,7 +62,6 @@ function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@hcp.ma"
               required
               className="w-full outline-none text-sm text-neutral-800"
             />
