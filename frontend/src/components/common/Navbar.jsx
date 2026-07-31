@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Menu, X } from 'lucide-react'
+import { User, Menu, X, LogOut } from 'lucide-react'
 import hcpLogo from '../../assets/logohcp.jpg'
+import { useAuth } from '../../context/AuthContext'
 
 function Navbar({ role = 'Admin' }) {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [menuOuvert, setMenuOuvert] = useState(false)
 
   const cheminsDashboard = {
@@ -21,6 +23,12 @@ function Navbar({ role = 'Admin' }) {
   const allerVers = (path) => {
     navigate(path)
     setMenuOuvert(false) // referme le menu après avoir cliqué sur un lien
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+    setMenuOuvert(false)
   }
 
   return (
@@ -45,6 +53,13 @@ function Navbar({ role = 'Admin' }) {
               {lien.label}
             </button>
           ))}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+          >
+            <LogOut size={16} />
+            Déconnexion
+          </button>
         </div>
 
         {/* Groupe droite : profil + bouton hamburger (mobile only) */}
@@ -78,6 +93,13 @@ function Navbar({ role = 'Admin' }) {
               {lien.label}
             </button>
           ))}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-left px-6 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={16} />
+            Déconnexion
+          </button>
         </div>
       )}
     </nav>

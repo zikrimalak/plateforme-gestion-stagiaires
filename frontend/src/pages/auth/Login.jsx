@@ -1,19 +1,41 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Mail, Lock } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 function Login() {
   const navigate = useNavigate()
   const { role } = useParams()
+  const { login } = useAuth()
 
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
   const [erreur, setErreur] = useState('')
+  const [chargement, setChargement] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setErreur('')
-    console.log('Connexion tentée pour', role, email, motDePasse)
+    setChargement(true)
+
+    try {
+      const user = await login(email, motDePasse)
+
+      if (user.role === 'admin') navigate('/admin/dashboard')
+      else if (user.role === 'encadrant') navigate('/encadrant/dashboard')
+      else if (user.role === 'stagiaire') navigate('/stagiaire/dashboard')
+      else navigate('/')
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setErreur('Email ou mot de passe incorrect')
+      } else if (err.response?.status === 403) {
+        setErreur("Votre compte n'est pas encore activé")
+      } else {
+        setErreur('Une erreur est survenue, réessayez')
+      }
+    } finally {
+      setChargement(false)
+    }
   }
 
   const titres = {
@@ -66,9 +88,10 @@ function Login() {
 
         <button
           type="submit"
-          className="bg-primary hover:bg-primary-dark text-white font-medium rounded-lg py-2.5 transition-colors"
+          disabled={chargement}
+          className="bg-primary hover:bg-primary-dark text-white font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50"
         >
-          Se connecter
+          {chargement ? 'Connexion...' : 'Se connecter'}
         </button>
 
         <button

@@ -1,15 +1,33 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Lock, CheckCircle } from 'lucide-react'
+import api from '../../services/api'
 
 function DefinirMotDePasse() {
   const { token } = useParams()
+  const navigate = useNavigate()
 
   const [motDePasse, setMotDePasse] = useState('')
   const [confirmation, setConfirmation] = useState('')
   const [erreur, setErreur] = useState('')
+  const [chargement, setChargement] = useState(false)
+  const [succes, setSucces] = useState(false)
+  const [tokenValide, setTokenValide] = useState(null) // null = en cours de vérification
 
-  const handleSubmit = (e) => {
+  // Vérifie le token dès l'arrivée sur la page, avant même que l'utilisateur saisisse quoi que ce soit
+  useEffect(() => {
+    async function verifier() {
+      try {
+        await api.get(`/verifier-token/${token}`)
+        setTokenValide(true)
+      } catch (err) {
+        setTokenValide(false)
+      }
+    }
+    verifier()
+  }, [token])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setErreur('')
 
@@ -21,8 +39,50 @@ function DefinirMotDePasse() {
       setErreur('Les deux mots de passe ne correspondent pas')
       return
     }
-    console.log('Mot de passe défini avec le token', token)
+
+    setChargement(true)
+    try {
+      await api.post(`/activer-compte/${token}`, { password: motDePasse })
+      setSucces(true)
+      setTimeout(() => navigate('/login/stagiaire'), 2000)
+    } catch (err) {
+      setErreur(err.response?.data?.message || 'Une erreur est survenue, réessayez')
+    } finally {
+      setChargement(false)
+    }
   }
+
+  // --- États d'affichage particuliers ---
+
+  if (tokenValide === null) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+        <p className="text-neutral-600">Vérification du lien...</p>
+      </div>
+    )
+  }
+
+  if (tokenValide === false) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+        <p className="text-red-600 text-center">
+          Ce lien d'activation est invalide ou a expiré. Contactez l'administrateur.
+        </p>
+      </div>
+    )
+  }
+
+  if (succes) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+        <p className="text-green-600 text-center">
+          Compte activé avec succès ! Redirection vers la connexion...
+        </p>
+      </div>
+    )
+  }
+
+  // --- Formulaire normal ---
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col items-center pt-8 sm:pt-16 gap-8 px-4 sm:px-6">
@@ -68,9 +128,10 @@ function DefinirMotDePasse() {
 
         <button
           type="submit"
-          className="bg-primary hover:bg-primary-dark text-white font-medium rounded-lg py-2.5 transition-colors"
+          disabled={chargement}
+          className="bg-primary hover:bg-primary-dark text-white font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50"
         >
-          Valider
+          {chargement ? 'Validation...' : 'Valider'}
         </button>
       </form>
     </div>
