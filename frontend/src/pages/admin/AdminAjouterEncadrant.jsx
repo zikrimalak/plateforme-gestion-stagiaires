@@ -2,27 +2,51 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Phone, Building2, Save } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
+import api from "../../services/api";
 
 export default function AdminAjouterEncadrant() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ prenom: "", nom: "", email: "", telephone: "", departement: "" });
   const [erreurEmail, setErreurEmail] = useState("");
+  const [chargement, setChargement] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [succes, setSucces] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (e.target.name === "email") setErreurEmail("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErreur("");
+    setSucces("");
 
-    if (!form.email.endsWith("@hcp.ma")) {
+    /* if (!form.email.endsWith("@hcp.ma")) {
       setErreurEmail("L'email doit être une adresse professionnelle @hcp.ma");
       return;
     }
+    */
 
-    // TODO: appel axios vers le backend
-    console.log(form);
+    setChargement(true);
+    try {
+      await api.post("/admin/utilisateurs", {
+        ...form,
+        role: "encadrant",
+      });
+      setSucces("Encadrant ajouté avec succès ! Un email d'activation lui a été envoyé.");
+      setForm({ prenom: "", nom: "", email: "", telephone: "", departement: "" });
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const erreurs = err.response.data.errors;
+        const premiereErreur = Object.values(erreurs)[0][0];
+        setErreur(premiereErreur);
+      } else {
+        setErreur("Une erreur est survenue, réessayez.");
+      }
+    } finally {
+      setChargement(false);
+    }
   };
 
   return (
@@ -81,7 +105,7 @@ export default function AdminAjouterEncadrant() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="@hcp.ma"
+                  placeholder="email"
                   value={form.email}
                   onChange={handleChange}
                   className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
@@ -122,12 +146,16 @@ export default function AdminAjouterEncadrant() {
               />
             </div>
 
+            {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+            {succes && <p className="text-sm text-green-600">{succes}</p>}
+
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02]"
+              disabled={chargement}
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
             >
               <Save size={18} />
-              Enregistrer l'encadrant
+              {chargement ? "Enregistrement..." : "Enregistrer l'encadrant"}
             </button>
           </form>
         </div>

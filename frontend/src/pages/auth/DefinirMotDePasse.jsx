@@ -41,11 +41,15 @@ function DefinirMotDePasse() {
     }
 
     setChargement(true)
-    try {
-      await api.post(`/activer-compte/${token}`, { password: motDePasse, password_confirmation: confirmation, })
-      setSucces(true)
-      setTimeout(() => navigate('/login/stagiaire'), 2000)
-    } catch (err) {
+   try {
+  const response = await api.post(`/activer-compte/${token}`, {
+    password: motDePasse,
+    password_confirmation: confirmation,
+  })
+  setSucces(true)
+  const role = response.data.role || 'stagiaire'   // ← rôle renvoyé par le backend
+  setTimeout(() => navigate(`/login/${role}`), 2000)
+} catch (err) {
       setErreur(err.response?.data?.message || 'Une erreur est survenue, réessayez')
     } finally {
       setChargement(false)

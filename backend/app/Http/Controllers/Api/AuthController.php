@@ -99,6 +99,9 @@ public function activerCompte(Request $request, string $token)
         'token_expire_at' => null,
     ]);
 
-    return response()->json(['message' => 'Compte activé avec succès.']);
+    return response()->json([
+    'message' => 'Compte activé avec succès.',
+    'role' => $compte->user->role,
+]);
 }
 }
