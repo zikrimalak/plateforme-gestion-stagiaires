@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 function Login() {
   const navigate = useNavigate()
   const { role } = useParams()
-  const { login } = useAuth()
+  const { login, logout } = useAuth()
 
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
@@ -21,10 +21,16 @@ function Login() {
     try {
       const user = await login(email, motDePasse)
 
+      // Vérifie que le compte correspond bien à la page de connexion utilisée
+      if (user.role !== role) {
+        logout()
+        setErreur(`Ce compte n'est pas un compte ${role}.`)
+        return
+      }
+
       if (user.role === 'admin') navigate('/admin/dashboard')
       else if (user.role === 'encadrant') navigate('/encadrant/dashboard')
       else if (user.role === 'stagiaire') navigate('/stagiaire/dashboard')
-      else navigate('/')
     } catch (err) {
       if (err.response?.status === 401) {
         setErreur('Email ou mot de passe incorrect')

@@ -51,4 +51,11 @@ class AdminController extends Controller
             'user' => $user,
         ], 201);
     }
+    // GET /api/admin/encadrants — liste des users ayant le rôle encadrant
+public function listerEncadrants()
+{
+    $encadrants = User::where('role', 'encadrant')->get(['id', 'nom', 'prenom']);
+
+    return response()->json($encadrants);
+}
 }

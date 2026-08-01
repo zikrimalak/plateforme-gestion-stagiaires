@@ -1,27 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BookOpen, AlignLeft, User, Save } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
-
-// TODO: remplacer par un vrai fetch axios une fois le backend branché
-const encadrantsDisponibles = [
-  { id: 1, nom: "Anas Bodor" },
-  { id: 2, nom: "Fatima Zahra Alaoui" },
-  { id: 3, nom: "Karim Benjelloun" },
-];
+import api from "../../services/api";
 
 export default function AdminAjouterSujet() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ titre: "", description: "", encadrantId: "" });
+  const [encadrants, setEncadrants] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [succes, setSucces] = useState("");
+
+  // Charge la liste des encadrants une seule fois, au montage du composant
+  useEffect(() => {
+    api.get("/admin/encadrants")
+      .then((res) => setEncadrants(res.data))
+      .catch(() => setErreur("Impossible de charger la liste des encadrants."));
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: appel axios vers le backend
-    console.log(form);
+    setErreur("");
+    setSucces("");
+    setLoading(true);
+
+    try {
+      await api.post("/admin/sujets", {
+        titre: form.titre,
+        description: form.description,
+        encadrant_id: form.encadrantId,
+      });
+      setSucces("Sujet créé avec succès !");
+      setForm({ titre: "", description: "", encadrantId: "" });
+    } catch (err) {
+      setErreur(
+        err.response?.data?.message || "Erreur lors de la création du sujet."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,6 +63,13 @@ export default function AdminAjouterSujet() {
           <p className="text-neutral-500 mb-6">
             Le sujet sera visible par les stagiaires dès sa création.
           </p>
+
+          {erreur && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{erreur}</div>
+          )}
+          {succes && (
+            <div className="mb-4 p-3 bg-green-50 text-green-600 rounded-lg text-sm">{succes}</div>
+          )}
 
           <form
             onSubmit={handleSubmit}
@@ -84,9 +113,9 @@ export default function AdminAjouterSujet() {
                 <option value="" disabled>
                   Affecter à un encadrant
                 </option>
-                {encadrantsDisponibles.map((e) => (
+                {encadrants.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.nom}
+                    {e.prenom} {e.nom}
                   </option>
                 ))}
               </select>
@@ -94,10 +123,11 @@ export default function AdminAjouterSujet() {
 
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02]"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02] disabled:opacity-50"
             >
               <Save size={18} />
-              Enregistrer le sujet
+              {loading ? "Enregistrement..." : "Enregistrer le sujet"}
             </button>
           </form>
         </div>

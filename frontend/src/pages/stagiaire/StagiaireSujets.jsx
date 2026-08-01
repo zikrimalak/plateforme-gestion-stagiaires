@@ -1,32 +1,23 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
 import AgentIAChat from "../../components/agent-ia/AgentIAChat";
-
-// TODO: remplacer par un vrai fetch axios une fois le backend branché
-const sujetsDisponibles = [
-  {
-    id: 1,
-    titre: "Développement d'une plateforme de gestion des stagiaires",
-    description: "Conception et développement d'une application web complète pour gérer les stages, du dépôt de candidature au suivi hebdomadaire.",
-    encadrant: "Anas Bodor",
-  },
-  {
-    id: 2,
-    titre: "Automatisation de la collecte de données statistiques",
-    description: "Mise en place d'un pipeline automatisé pour la collecte et le traitement de données statistiques régionales.",
-    encadrant: "Fatima Zahra Alaoui",
-  },
-  {
-    id: 3,
-    titre: "Tableau de bord décisionnel pour le suivi des indicateurs",
-    description: "Création d'un dashboard interactif permettant de visualiser les indicateurs clés de performance du service.",
-    encadrant: "Karim Benjelloun",
-  },
-];
+import api from "../../services/api";
 
 export default function StagiaireSujets() {
   const navigate = useNavigate();
+  const [sujets, setSujets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [erreur, setErreur] = useState("");
+
+  useEffect(() => {
+    api
+      .get("/sujets")
+      .then((res) => setSujets(res.data))
+      .catch(() => setErreur("Impossible de charger les sujets."))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <>
@@ -45,8 +36,14 @@ export default function StagiaireSujets() {
           Consulte les sujets ouverts et leur encadrant affecté.
         </p>
 
+        {loading && <p className="text-neutral-500 text-sm">Chargement des sujets...</p>}
+        {erreur && <p className="text-red-600 text-sm">{erreur}</p>}
+        {!loading && !erreur && sujets.length === 0 && (
+          <p className="text-neutral-500 text-sm">Aucun sujet disponible pour le moment.</p>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {sujetsDisponibles.map((sujet) => (
+          {sujets.map((sujet) => (
             <div
               key={sujet.id}
               className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-5 flex flex-col"
@@ -55,10 +52,13 @@ export default function StagiaireSujets() {
               <p className="text-neutral-500 text-sm mb-4 flex-1">{sujet.description}</p>
               <div className="flex items-center gap-2 text-sm text-neutral-600 mb-4">
                 <User size={16} className="text-primary" />
-                {sujet.encadrant}
+                {sujet.encadrant?.prenom} {sujet.encadrant?.nom}
               </div>
-              <button className="w-full bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 rounded-lg transition">
-                Postuler
+              <button
+                disabled={sujet.statut === "verrouille"}
+                className="w-full bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sujet.statut === "verrouille" ? "Sujet pourvu" : "Postuler"}
               </button>
             </div>
           ))}
