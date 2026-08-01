@@ -10,6 +10,8 @@ export default function StagiaireSujets() {
   const [sujets, setSujets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erreur, setErreur] = useState("");
+  const [postulationEnCours, setPostulationEnCours] = useState(null);
+  const [messagePostulation, setMessagePostulation] = useState("");
 
   useEffect(() => {
     api
@@ -18,6 +20,19 @@ export default function StagiaireSujets() {
       .catch(() => setErreur("Impossible de charger les sujets."))
       .finally(() => setLoading(false));
   }, []);
+
+  const handlePostuler = async (sujetId) => {
+    setPostulationEnCours(sujetId);
+    setMessagePostulation("");
+    try {
+      await api.post("/candidatures", { sujet_id: sujetId });
+      setMessagePostulation("Candidature envoyée avec succès !");
+    } catch (err) {
+      setMessagePostulation(err.response?.data?.message || "Erreur lors de la candidature.");
+    } finally {
+      setPostulationEnCours(null);
+    }
+  };
 
   return (
     <>
@@ -38,6 +53,7 @@ export default function StagiaireSujets() {
 
         {loading && <p className="text-neutral-500 text-sm">Chargement des sujets...</p>}
         {erreur && <p className="text-red-600 text-sm">{erreur}</p>}
+        {messagePostulation && <p className="text-sm text-primary mb-4">{messagePostulation}</p>}
         {!loading && !erreur && sujets.length === 0 && (
           <p className="text-neutral-500 text-sm">Aucun sujet disponible pour le moment.</p>
         )}
@@ -55,10 +71,15 @@ export default function StagiaireSujets() {
                 {sujet.encadrant?.prenom} {sujet.encadrant?.nom}
               </div>
               <button
-                disabled={sujet.statut === "verrouille"}
+                onClick={() => handlePostuler(sujet.id)}
+                disabled={sujet.statut === "verrouille" || postulationEnCours === sujet.id}
                 className="w-full bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {sujet.statut === "verrouille" ? "Sujet pourvu" : "Postuler"}
+                {sujet.statut === "verrouille"
+                  ? "Sujet pourvu"
+                  : postulationEnCours === sujet.id
+                  ? "Envoi..."
+                  : "Postuler"}
               </button>
             </div>
           ))}

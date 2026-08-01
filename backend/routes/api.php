@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\SujetController;
+use App\Http\Controllers\Api\CandidatureController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -29,4 +30,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::put('/admin/sujets/{id}', [SujetController::class, 'update']);
     Route::delete('/admin/sujets/{id}', [SujetController::class, 'destroy']);
     Route::get('/admin/encadrants', [AdminController::class, 'listerEncadrants']);
+});
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/candidatures', [CandidatureController::class, 'store']);
+
+    Route::middleware('role:encadrant')->group(function () {
+        Route::get('/encadrant/candidatures', [CandidatureController::class, 'index']);
+        Route::post('/encadrant/candidatures/{id}/accepter', [CandidatureController::class, 'accepter']);
+        Route::post('/encadrant/candidatures/{id}/refuser', [CandidatureController::class, 'refuser']);
+    });
 });
