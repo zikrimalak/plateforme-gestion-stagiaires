@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -6,34 +6,53 @@ import {
   ClipboardList,
   FileUp,
   MessageSquare,
-  User,
+  CalendarDays,
 } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
 import ActionCard from "../../components/common/ActionCard";
-
-// TODO: remplacer par un vrai fetch axios une fois le backend branché
-const sujetAffecte = {
-  titre: "Développement d'une plateforme de gestion des stagiaires",
-  encadrant:{ nom: "Anas Bodor", email: "anas.bodor@hcp.ma", telephone: "0661 23 45 67" },
-};
-// Pour tester le cas "pas encore affecté", mets sujetAffecte à null
-
-// TODO: remplacer par un vrai fetch axios une fois le backend branché
-const remarques = [
-  {
-    id: 1,
-    date: "22 juillet 2026",
-    texte: "Bon avancement sur la partie frontend, pense à documenter le code.",
-  },
-  {
-    id: 2,
-    date: "15 juillet 2026",
-    texte: "Merci de préciser les difficultés rencontrées dans le suivi hebdomadaire.",
-  },
-];
+import api from "../../services/api";
 
 export default function StagiaireDashboard() {
   const navigate = useNavigate();
+
+  const [sujetAffecte, setSujetAffecte] = useState(null);
+  const [remarques, setRemarques] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState(null);
+
+  const [dateDebut, setDateDebut] = useState("");
+  const [dateFin, setDateFin] = useState("");
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  const [erreurDates, setErreurDates] = useState(null);
+
+  const chargerDonnees = () => {
+    api.get('/stagiaire/dashboard-data')
+      .then((res) => {
+        setSujetAffecte(res.data.sujetAffecte);
+        setRemarques(res.data.remarques);
+      })
+      .catch(() => setErreur("Impossible de charger vos informations."))
+      .finally(() => setChargement(false));
+  };
+
+  useEffect(() => {
+    chargerDonnees();
+  }, []);
+
+  const enregistrerDates = (e) => {
+    e.preventDefault();
+    setErreurDates(null);
+    setEnvoiEnCours(true);
+
+    api.patch('/mon-stage/dates', { date_debut: dateDebut, date_fin: dateFin })
+      .then(() => chargerDonnees())
+      .catch((err) => {
+        setErreurDates(
+          err.response?.data?.message || "Erreur lors de l'enregistrement des dates."
+        );
+      })
+      .finally(() => setEnvoiEnCours(false));
+  };
 
   return (
     <>
@@ -41,39 +60,88 @@ export default function StagiaireDashboard() {
       <div className="min-h-screen bg-neutral-100 p-6">
         <h1 className="text-3xl font-bold text-primary-dark mb-6">Vue d'ensemble</h1>
 
-        {/* Bandeau sujet affecté */}
-        {sujetAffecte ? (
-          <div className="bg-yellow-50 border border-accent-dark/30 rounded-2xl p-5 mb-8 flex items-start gap-4">
-            <div className="bg-accent w-11 h-11 rounded-xl flex items-center justify-center shrink-0">
-              <CheckCircle2 className="text-primary-dark" size={22} />
+        {erreur && <p className="text-red-600 text-sm mb-4">{erreur}</p>}
+
+        {!chargement && (
+          sujetAffecte ? (
+            <div className="bg-yellow-50 border border-accent-dark/30 rounded-2xl p-5 mb-8 flex flex-col gap-4">
+              <div className="flex items-start gap-4">
+                <div className="bg-accent w-11 h-11 rounded-xl flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="text-primary-dark" size={22} />
+                </div>
+                <div>
+                  <p className="font-semibold text-neutral-800">
+                    Votre candidature a été acceptée !
+                  </p>
+                  <p className="text-neutral-600 text-sm mt-1">
+                    Sujet : <span className="font-medium">{sujetAffecte.titre}</span>
+                  </p>
+                  <p className="text-neutral-600 text-sm">
+                    Encadrant : <span className="font-medium">{sujetAffecte.encadrant.nom}</span>
+                  </p>
+                  <p className="text-neutral-600 text-sm">
+                    Email : <span className="font-medium">{sujetAffecte.encadrant.email}</span>
+                  </p>
+                  <p className="text-neutral-600 text-sm">
+                    Telephone : <span className="font-medium">{sujetAffecte.encadrant.telephone}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Dates du stage */}
+              {sujetAffecte.dateDebut && sujetAffecte.dateFin ? (
+                <div className="flex items-center gap-2 text-sm text-neutral-700 border-t border-accent-dark/20 pt-3">
+                  <CalendarDays size={16} className="text-primary-dark" />
+                  Stage du <span className="font-medium">{sujetAffecte.dateDebut}</span> au{" "}
+                  <span className="font-medium">{sujetAffecte.dateFin}</span>
+                </div>
+              ) : (
+                <form
+                  onSubmit={enregistrerDates}
+                  className="border-t border-accent-dark/20 pt-4 flex flex-col sm:flex-row items-end gap-3"
+                >
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-neutral-500">Date de début</label>
+                    <input
+                      type="date"
+                      value={dateDebut}
+                      onChange={(e) => setDateDebut(e.target.value)}
+                      required
+                      className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-neutral-500">Date de fin</label>
+                    <input
+                      type="date"
+                      value={dateFin}
+                      onChange={(e) => setDateFin(e.target.value)}
+                      required
+                      className="border border-neutral-300 rounded-lg px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={envoiEnCours}
+                    className="bg-primary text-white text-sm px-4 py-1.5 rounded-lg hover:bg-primary-dark transition disabled:opacity-50"
+                  >
+                    {envoiEnCours ? "Enregistrement..." : "Confirmer les dates"}
+                  </button>
+                  {erreurDates && (
+                    <p className="text-red-600 text-xs sm:ml-2">{erreurDates}</p>
+                  )}
+                </form>
+              )}
             </div>
-            <div>
-              <p className="font-semibold text-neutral-800">
-                Votre candidature a été acceptée !
-              </p>
-              <p className="text-neutral-600 text-sm mt-1">
-                Sujet : <span className="font-medium">{sujetAffecte.titre}</span>
-              </p>
-              <p className="text-neutral-600 text-sm">
-                Encadrant : <span className="font-medium">{sujetAffecte.encadrant.nom}</span>
-              </p>
-               <p className="text-neutral-600 text-sm">
-                Email : <span className="font-medium">{sujetAffecte.encadrant.email}</span>
-              </p>
-               <p className="text-neutral-600 text-sm">
-                Telephone : <span className="font-medium">{sujetAffecte.encadrant.telephone}</span>
+          ) : (
+            <div className="bg-white border border-neutral-200 rounded-2xl p-5 mb-8">
+              <p className="text-neutral-500">
+                Aucun sujet ne vous a encore été affecté. Consultez les sujets disponibles ci-dessous.
               </p>
             </div>
-          </div>
-        ) : (
-          <div className="bg-white border border-neutral-200 rounded-2xl p-5 mb-8">
-            <p className="text-neutral-500">
-              Aucun sujet ne vous a encore été affecté. Consultez les sujets disponibles ci-dessous.
-            </p>
-          </div>
+          )
         )}
 
-        {/* Actions */}
         <p className="text-sm font-semibold text-neutral-500 tracking-wide mb-3">ACTIONS</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <ActionCard
@@ -93,7 +161,6 @@ export default function StagiaireDashboard() {
           />
         </div>
 
-        {/* Remarques de l'encadrant */}
         <p className="text-sm font-semibold text-neutral-500 tracking-wide mb-3">
           REMARQUES DE VOTRE ENCADRANT
         </p>
@@ -104,7 +171,7 @@ export default function StagiaireDashboard() {
                 <MessageSquare className="text-primary shrink-0 mt-0.5" size={18} />
                 <div>
                   <p className="text-neutral-700 text-sm">{r.texte}</p>
-                  <p className="text-neutral-400 text-xs mt-1">{r.date}</p>
+                  <p className="text-neutral-400 text-xs mt-1">{r.created_at}</p>
                 </div>
               </div>
             ))

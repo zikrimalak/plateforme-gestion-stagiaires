@@ -6,26 +6,35 @@ use Illuminate\Database\Eloquent\Model;
 
 class Stage extends Model
 {
-    protected $fillable = ['sujet_id', 'candidature_id', 'date_debut', 'date_fin', 'statut'];
+    protected $fillable = [
+        'candidature_id',
+        'sujet_id',
+        'date_debut',
+        'date_fin',
+        'statut' ,
+    ];
 
-public function sujet()
-{
-    return $this->belongsTo(Sujet::class);
-}
+    protected $casts = [
+        'date_debut' => 'date',
+        'date_fin' => 'date',
+    ];
 
-public function candidature()
+    public function candidature()
 {
     return $this->belongsTo(Candidature::class);
 }
 
-public function suivisHebdomadaires()
-{
-    return $this->hasMany(SuiviHebdomadaire::class);
-}
+    public function sujet()
+    {
+        return $this->belongsTo(Sujet::class, 'sujet_id');
+    }
 
-// Raccourci pratique : retrouver le stagiaire depuis un Stage
-public function stagiaire()
-{
-    return $this->candidature->stagiaire;
-}
+    // Un stage est "actif" tant que date_fin n'est pas dépassée (ou pas encore saisie)
+    public function getStatutAttribute()
+    {
+        if (!$this->date_fin) {
+            return 'actif';
+        }
+        return $this->date_fin->isPast() ? 'termine' : 'actif';
+    }
 }
