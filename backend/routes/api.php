@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\SujetController;
 use App\Http\Controllers\Api\CandidatureController;
+use App\Http\Controllers\DocumentController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -39,4 +40,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/encadrant/candidatures/{id}/accepter', [CandidatureController::class, 'accepter']);
         Route::post('/encadrant/candidatures/{id}/refuser', [CandidatureController::class, 'refuser']);
     });
+});
+// routes/api.php
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/documents', [DocumentController::class, 'store']);
+    Route::get('/mes-documents', [DocumentController::class, 'mesDocuments']);
+    Route::get('/documents/{id}/download', [DocumentController::class, 'telecharger']);
+});
+
+Route::middleware(['auth:sanctum', 'role:encadrant'])->group(function () {
+    Route::get('/encadrant/documents', [DocumentController::class, 'index']);
+    Route::patch('/encadrant/documents/{id}', [DocumentController::class, 'update']);
 });
