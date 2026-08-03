@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class SuiviHebdomadaire extends Model
 {
-    protected $fillable = ['stage_id', 'semaine', 'taches', 'difficultes', 'solutions', 'statut', 'commentaire'];
+    protected $table = 'suivis_hebdomadaires';
 
-public function stage()
-{
-    return $this->belongsTo(Stage::class);
-}
+    protected $fillable = ['stagiaire_id', 'semaine', 'taches', 'difficultes', 'solutions', 'statut', 'commentaire'];
+
+    public function stagiaire()
+    {
+        return $this->belongsTo(User::class, 'stagiaire_id');
+    }
 }

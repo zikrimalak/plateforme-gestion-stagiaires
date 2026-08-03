@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\SujetController;
 use App\Http\Controllers\Api\CandidatureController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\Api\SuiviHebdomadaireController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -52,4 +53,13 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'role:encadrant'])->group(function () {
     Route::get('/encadrant/documents', [DocumentController::class, 'index']);
     Route::patch('/encadrant/documents/{id}', [DocumentController::class, 'update']);
+});
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/suivis-hebdo', [SuiviHebdomadaireController::class, 'store']);
+    Route::get('/mes-suivis-hebdo', [SuiviHebdomadaireController::class, 'mesSuivis']);
+});
+
+Route::middleware(['auth:sanctum', 'role:encadrant'])->group(function () {
+    Route::get('/encadrant/suivis-hebdo', [SuiviHebdomadaireController::class, 'index']);
+    Route::patch('/encadrant/suivis-hebdo/{id}', [SuiviHebdomadaireController::class, 'update']);
 });

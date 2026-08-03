@@ -1,52 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ListTodo, AlertTriangle, Lightbulb, Send, CheckCircle2, Clock } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
-
-// TODO: remplacer par un vrai fetch axios une fois le backend branché
-const historiqueInitial = [
-  {
-    id: 1,
-    semaine: "Semaine du 14 au 18 juillet 2026",
-    taches: "Mise en place de la Navbar, du dashboard admin et des composants réutilisables.",
-    difficultes: "Difficulté à centrer les icônes dans les inputs.",
-    solutions: "Utilisation de position relative/absolute avec Tailwind.",
-    statut: "valide",
-  },
-  {
-    id: 2,
-    semaine: "Semaine du 21 au 25 juillet 2026",
-    taches: "Construction du dashboard stagiaire et de l'agent IA.",
-    difficultes: "Organisation du composant chat en state séparé.",
-    solutions: "Séparation en composant AgentIAChat réutilisable.",
-    statut: "en_attente",
-  },
-];
+import api from "../../services/api";
 
 export default function StagiaireSuiviHebdo() {
   const navigate = useNavigate();
-  const [historique, setHistorique] = useState(historiqueInitial);
+  const [historique, setHistorique] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
   const [form, setForm] = useState({ taches: "", difficultes: "", solutions: "" });
+
+  useEffect(() => {
+    const charger = async () => {
+      try {
+        const res = await api.get("/mes-suivis-hebdo");
+        setHistorique(res.data);
+      } catch (err) {
+        setErreur("Impossible de charger ton historique.");
+      } finally {
+        setChargement(false);
+      }
+    };
+    charger();
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setEnvoiEnCours(true);
+    setErreur("");
 
-    // TODO: appel axios vers le backend (POST /api/stagiaire/suivi-hebdo)
-    const nouvelleEntree = {
-      id: historique.length + 1,
-      semaine: "Semaine en cours",
-      taches: form.taches,
-      difficultes: form.difficultes,
-      solutions: form.solutions,
-      statut: "en_attente",
-    };
-
-    setHistorique([nouvelleEntree, ...historique]);
-    setForm({ taches: "", difficultes: "", solutions: "" });
+    try {
+      const res = await api.post("/suivis-hebdo", form);
+      setHistorique([res.data, ...historique]);
+      setForm({ taches: "", difficultes: "", solutions: "" });
+    } catch (err) {
+      setErreur("L'envoi du suivi a échoué.");
+    } finally {
+      setEnvoiEnCours(false);
+    }
   };
 
   return (
@@ -66,11 +63,13 @@ export default function StagiaireSuiviHebdo() {
           Renseigne tes avancements de la semaine. Ton encadrant validera ton suivi.
         </p>
 
-        {/* Formulaire de saisie */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-md p-6 space-y-4 mb-8"
-        >
+        {erreur && (
+          <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg mb-4">
+            {erreur}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-md p-6 space-y-4 mb-8">
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-neutral-700 mb-2">
               <ListTodo size={18} className="text-primary" />
@@ -119,49 +118,52 @@ export default function StagiaireSuiviHebdo() {
 
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02]"
+            disabled={envoiEnCours}
+            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-2.5 rounded-lg transition hover:scale-[1.02] disabled:opacity-60"
           >
             <Send size={18} />
-            Soumettre le suivi de la semaine
+            {envoiEnCours ? "Envoi en cours..." : "Soumettre le suivi de la semaine"}
           </button>
         </form>
 
-        {/* Historique */}
         <p className="text-sm font-semibold text-neutral-500 tracking-wide mb-3">HISTORIQUE</p>
-        <div className="space-y-4">
-          {historique.map((entree) => (
-            <div
-              key={entree.id}
-              className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-5"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-neutral-800">{entree.semaine}</h3>
 
-                {entree.statut === "valide" ? (
-                  <span className="flex items-center gap-1 bg-green-50 text-green-600 text-xs font-medium px-3 py-1 rounded-full">
-                    <CheckCircle2 size={14} />
-                    Validé
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 bg-yellow-50 text-accent-dark text-xs font-medium px-3 py-1 rounded-full">
-                    <Clock size={14} />
-                    En attente
-                  </span>
-                )}
-              </div>
+        {chargement ? (
+          <p className="text-neutral-400 text-sm">Chargement...</p>
+        ) : (
+          <div className="space-y-4">
+            {historique.map((entree) => (
+              <div key={entree.id} className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-neutral-800">{entree.semaine}</h3>
 
-              <div className="space-y-2 text-sm text-neutral-600">
-                <p><span className="font-medium text-neutral-700">Tâches :</span> {entree.taches}</p>
-                {entree.difficultes && (
-                  <p><span className="font-medium text-neutral-700">Difficultés :</span> {entree.difficultes}</p>
-                )}
-                {entree.solutions && (
-                  <p><span className="font-medium text-neutral-700">Solutions :</span> {entree.solutions}</p>
-                )}
+                  {entree.statut === "valide" ? (
+                    <span className="flex items-center gap-1 bg-green-50 text-green-600 text-xs font-medium px-3 py-1 rounded-full">
+                      <CheckCircle2 size={14} /> Validé
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 bg-yellow-50 text-accent-dark text-xs font-medium px-3 py-1 rounded-full">
+                      <Clock size={14} /> En attente
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2 text-sm text-neutral-600">
+                  <p><span className="font-medium text-neutral-700">Tâches :</span> {entree.taches}</p>
+                  {entree.difficultes && (
+                    <p><span className="font-medium text-neutral-700">Difficultés :</span> {entree.difficultes}</p>
+                  )}
+                  {entree.solutions && (
+                    <p><span className="font-medium text-neutral-700">Solutions :</span> {entree.solutions}</p>
+                  )}
+                  {entree.commentaire && (
+                    <p className="italic text-neutral-500">Remarque de l'encadrant : "{entree.commentaire}"</p>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
