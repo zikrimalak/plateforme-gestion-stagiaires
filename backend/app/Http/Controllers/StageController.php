@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Stage;
-use App\Models\Candidature;
 use Illuminate\Http\Request;
 
 class StageController extends Controller
@@ -15,11 +14,16 @@ class StageController extends Controller
             'date_fin' => 'required|date|after:date_debut',
         ]);
 
-        $candidature = Candidature::where('stagiaire_id', $request->user()->id)
-    ->where('statut', 'acceptee')
-    ->firstOrFail();
+        $stage = Stage::whereHas('candidature', function ($q) use ($request) {
+            $q->where('stagiaire_id', $request->user()->id)
+              ->where('statut', 'acceptee');
+        })->first();
 
-$stage = $candidature->stage;
+        if (!$stage) {
+            return response()->json([
+                'message' => 'Aucun stage trouvé pour votre compte.',
+            ], 404);
+        }
 
         $stage->update([
             'date_debut' => $request->date_debut,

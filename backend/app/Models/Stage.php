@@ -11,7 +11,7 @@ class Stage extends Model
         'sujet_id',
         'date_debut',
         'date_fin',
-        'statut' ,
+        'statut',
     ];
 
     protected $casts = [
@@ -19,18 +19,24 @@ class Stage extends Model
         'date_fin' => 'date',
     ];
 
-    public function candidature()
-{
-    return $this->belongsTo(Candidature::class);
-}
-
     public function sujet()
     {
         return $this->belongsTo(Sujet::class, 'sujet_id');
     }
 
-    // Un stage est "actif" tant que date_fin n'est pas dépassée (ou pas encore saisie)
-    public function getStatutAttribute()
+    public function candidature()
+    {
+        return $this->belongsTo(Candidature::class, 'candidature_id');
+    }
+
+    // Accès pratique : $stage->stagiaire au lieu de $stage->candidature->stagiaire
+    public function getStagiaireAttribute()
+    {
+        return $this->candidature?->stagiaire;
+    }
+
+    // Calculé à la volée (n'écrase pas la colonne "statut" existante)
+    public function getStatutCalculeAttribute()
     {
         if (!$this->date_fin) {
             return 'actif';

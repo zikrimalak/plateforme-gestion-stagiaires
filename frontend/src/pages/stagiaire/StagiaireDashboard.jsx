@@ -54,6 +54,12 @@ export default function StagiaireDashboard() {
       .finally(() => setEnvoiEnCours(false));
   };
 
+  // Convertit une date ISO ("2026-08-04T00:00:00.000000Z") en format français ("04/08/2026")
+  const formaterDate = (dateIso) => {
+    if (!dateIso) return "";
+    return new Date(dateIso).toLocaleDateString("fr-FR");
+  };
+
   return (
     <>
       <Navbar role="Stagiaire" />
@@ -92,8 +98,8 @@ export default function StagiaireDashboard() {
               {sujetAffecte.dateDebut && sujetAffecte.dateFin ? (
                 <div className="flex items-center gap-2 text-sm text-neutral-700 border-t border-accent-dark/20 pt-3">
                   <CalendarDays size={16} className="text-primary-dark" />
-                  Stage du <span className="font-medium">{sujetAffecte.dateDebut}</span> au{" "}
-                  <span className="font-medium">{sujetAffecte.dateFin}</span>
+                  Stage du <span className="font-medium">{formaterDate(sujetAffecte.dateDebut)}</span> au{" "}
+                  <span className="font-medium">{formaterDate(sujetAffecte.dateFin)}</span>
                 </div>
               ) : (
                 <form

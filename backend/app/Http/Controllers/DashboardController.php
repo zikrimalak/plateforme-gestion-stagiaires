@@ -13,8 +13,8 @@ class DashboardController extends Controller
     {
         $stages = Stage::with('sujet.encadrant')->get();
 
-        $stagesActifs = $stages->filter(fn($s) => $s->statut === 'actif')->count();
-        $stagesTermines = $stages->filter(fn($s) => $s->statut === 'termine')->count();
+        $stagesActifs = $stages->filter(fn($s) => $s->statutCalcule === 'actif')->count();
+        $stagesTermines = $stages->filter(fn($s) => $s->statutCalcule === 'termine')->count();
 
         $stagiairesParEncadrant = $stages
             ->groupBy(fn($s) => $s->sujet->encadrant->nom . ' ' . $s->sujet->encadrant->prenom)
@@ -53,17 +53,18 @@ class DashboardController extends Controller
     {
         $stagiaireId = $request->user()->id;
 
-        $candidature = Candidature::where('stagiaire_id', $stagiaireId)
-            ->where('statut', 'acceptee')
+        $stage = Stage::whereHas('candidature', fn($q) => $q->where('stagiaire_id', $stagiaireId))
             ->with('sujet.encadrant')
             ->first();
 
-        $sujetAffecte = $candidature ? [
-            'titre' => $candidature->sujet->titre,
+        $sujetAffecte = $stage ? [
+            'titre' => $stage->sujet->titre,
+            'dateDebut' => $stage->date_debut,
+            'dateFin' => $stage->date_fin,
             'encadrant' => [
-                'nom' => $candidature->sujet->encadrant->nom . ' ' . $candidature->sujet->encadrant->prenom,
-                'email' => $candidature->sujet->encadrant->email,
-                'telephone' => $candidature->sujet->encadrant->telephone,
+                'nom' => $stage->sujet->encadrant->nom . ' ' . $stage->sujet->encadrant->prenom,
+                'email' => $stage->sujet->encadrant->email,
+                'telephone' => $stage->sujet->encadrant->telephone,
             ],
         ] : null;
 

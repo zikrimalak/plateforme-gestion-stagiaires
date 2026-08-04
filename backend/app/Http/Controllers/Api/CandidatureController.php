@@ -45,23 +45,39 @@ class CandidatureController extends Controller
             'candidature' => $candidature,
         ], 201);
     }
+public function index(Request $request)
+{
+    $candidatures = Candidature::with(['stagiaire', 'sujet'])
+        ->whereHas('sujet', function ($query) use ($request) {
+            $query->where('encadrant_id', $request->user()->id);
+        })
+        ->get();
 
+    return response()->json($candidatures);
+}
     // GET /api/encadrant/candidatures — liste des candidatures reçues sur les sujets de l'encadrant connecté
-    public function index(Request $request)
-    {
-        $candidatures = Candidature::with(['stagiaire', 'sujet'])
-            ->whereHas('sujet', function ($query) use ($request) {
-                $query->where('encadrant_id', $request->user()->id);
-            })
-            ->get();
-             Stage::create([
-            'candidature_id' => $candidature->id,
-            'sujet_id'       => $candidature->sujet_id,
-            'statut'         => 'en_cours',
-        ]);
+    public function accepter($id)
+{
+    DB::transaction(function () use ($id) {
+        $candidature = Candidature::with('sujet')->findOrFail($id);
 
-        return response()->json($candidatures);
-    }
+        $candidature->update(['statut' => 'acceptee']);
+
+        $candidature->sujet->update(['statut' => 'verrouille']);
+
+        Candidature::where('sujet_id', $candidature->sujet_id)
+            ->where('id', '!=', $candidature->id)
+            ->where('statut', 'en_attente')
+            ->update(['statut' => 'refusee']);
+
+        Stage::create([
+            'sujet_id' => $candidature->sujet_id,
+            'candidature_id' => $candidature->id,
+        ]);
+    });
+
+    return response()->json(['message' => 'Candidature acceptée']);
+}
 
     
    
