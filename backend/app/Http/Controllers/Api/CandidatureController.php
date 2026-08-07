@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidature;
+use App\Models\Document;
 use App\Models\Sujet;
 use App\Models\Stage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
 
 class CandidatureController extends Controller
 {
@@ -34,6 +34,26 @@ class CandidatureController extends Controller
             return response()->json(['message' => 'Vous avez déjà postulé à ce sujet.'], 422);
         }
 
+        // Vérifie que le CV et la lettre de motivation ont bien été déposés.
+        // On regarde juste s'ils existent (peu importe leur statut de validation) :
+        // le stagiaire doit les avoir déposés, pas forcément déjà validés par l'encadrant.
+        $typesRequis = ['CV', 'Lettre de motivation'];
+
+        $typesDeposes = Document::where('stagiaire_id', $request->user()->id)
+            ->whereIn('type', $typesRequis)
+            ->pluck('type')
+            ->unique();
+
+        $manquants = collect($typesRequis)->diff($typesDeposes);
+
+        if ($manquants->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Vous devez d\'abord déposer votre '
+                    . $manquants->implode(' et votre ')
+                    . ' avant de pouvoir postuler.',
+            ], 422);
+        }
+
         $candidature = Candidature::create([
             'stagiaire_id' => $request->user()->id,
             'sujet_id' => $data['sujet_id'],
@@ -45,44 +65,41 @@ class CandidatureController extends Controller
             'candidature' => $candidature,
         ], 201);
     }
-public function index(Request $request)
-{
-    $candidatures = Candidature::with(['stagiaire', 'sujet'])
-        ->whereHas('sujet', function ($query) use ($request) {
-            $query->where('encadrant_id', $request->user()->id);
-        })
-        ->get();
 
-    return response()->json($candidatures);
-}
     // GET /api/encadrant/candidatures — liste des candidatures reçues sur les sujets de l'encadrant connecté
+    public function index(Request $request)
+    {
+        $candidatures = Candidature::with(['stagiaire', 'sujet'])
+            ->whereHas('sujet', function ($query) use ($request) {
+                $query->where('encadrant_id', $request->user()->id);
+            })
+            ->get();
+
+        return response()->json($candidatures);
+    }
+
     public function accepter($id)
-{
-    DB::transaction(function () use ($id) {
-        $candidature = Candidature::with('sujet')->findOrFail($id);
+    {
+        DB::transaction(function () use ($id) {
+            $candidature = Candidature::with('sujet')->findOrFail($id);
 
-        $candidature->update(['statut' => 'acceptee']);
+            $candidature->update(['statut' => 'acceptee']);
 
-        $candidature->sujet->update(['statut' => 'verrouille']);
+            $candidature->sujet->update(['statut' => 'verrouille']);
 
-        Candidature::where('sujet_id', $candidature->sujet_id)
-            ->where('id', '!=', $candidature->id)
-            ->where('statut', 'en_attente')
-            ->update(['statut' => 'refusee']);
+            Candidature::where('sujet_id', $candidature->sujet_id)
+                ->where('id', '!=', $candidature->id)
+                ->where('statut', 'en_attente')
+                ->update(['statut' => 'refusee']);
 
-        Stage::create([
-            'sujet_id' => $candidature->sujet_id,
-            'candidature_id' => $candidature->id,
-        ]);
-    });
+            Stage::create([
+                'sujet_id' => $candidature->sujet_id,
+                'candidature_id' => $candidature->id,
+            ]);
+        });
 
-    return response()->json(['message' => 'Candidature acceptée']);
-}
-
-    
-   
-
-   
+        return response()->json(['message' => 'Candidature acceptée']);
+    }
 
     // POST /api/encadrant/candidatures/{id}/refuser
     public function refuser(Request $request, $id)

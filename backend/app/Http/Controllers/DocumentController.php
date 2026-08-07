@@ -6,9 +6,13 @@ use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Smalot\PdfParser\Parser as PdfParser;
 
 class DocumentController extends Controller
 {
+    private const TYPES_ANALYSES = ['CV', 'Lettre de motivation'];
+
     // POST /documents — le stagiaire dépose un document
     public function store(Request $request)
     {
@@ -17,18 +21,57 @@ class DocumentController extends Controller
             'fichier' => 'required|file|mimes:pdf,doc,docx|max:5120', // 5 Mo max
         ]);
 
-        // stocke le fichier dans storage/app/documents/{id_stagiaire}/
-        $chemin = $request->file('fichier')->store('documents/' . Auth::id());
+        $fichier = $request->file('fichier');
+
+        $chemin = $fichier->store('documents/' . Auth::id());
+
+        $texteExtrait = null;
+
+        if (in_array($request->type, self::TYPES_ANALYSES) && $fichier->getClientOriginalExtension() === 'pdf') {
+            $texteExtrait = $this->extraireTextePdf(Storage::path($chemin));
+        }
 
         $document = Document::create([
             'stagiaire_id' => Auth::id(),
             'type' => $request->type,
-            'nom_fichier' => $request->file('fichier')->getClientOriginalName(),
+            'nom_fichier' => $fichier->getClientOriginalName(),
             'chemin_fichier' => $chemin,
+            'texte_extrait' => $texteExtrait,
             'statut' => 'en_attente',
         ]);
 
         return response()->json($document, 201);
+    }
+
+    private function extraireTextePdf(string $cheminAbsolu): ?string
+    {
+        try {
+            $parser = new PdfParser();
+            $pdf = $parser->parseFile($cheminAbsolu);
+            $texte = trim($pdf->getText());
+
+            if ($texte === '') {
+                return null;
+            }
+
+            // Certains PDF produisent du texte avec des octets invalides en UTF-8
+            // (accents mal encodés dans le fichier source, caractères de contrôle...).
+            // Sans ce nettoyage, json_encode() plante plus tard quand Laravel renvoie
+            // le document en JSON — d'où l'erreur "Malformed UTF-8 characters".
+            $texte = $this->nettoyerUtf8($texte);
+
+            return $texte !== '' ? $texte : null;
+        } catch (\Throwable $e) {
+            Log::warning('Extraction PDF échouée pour ' . $cheminAbsolu . ' : ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    // Supprime/remplace les séquences d'octets qui ne forment pas de l'UTF-8 valide
+    private function nettoyerUtf8(string $texte): string
+    {
+        $nettoye = iconv('UTF-8', 'UTF-8//IGNORE', $texte);
+        return $nettoye !== false ? $nettoye : '';
     }
 
     // GET /mes-documents — historique du stagiaire connecté
@@ -79,7 +122,6 @@ class DocumentController extends Controller
     {
         $document = Document::findOrFail($id);
 
-        // sécurité : seul le stagiaire propriétaire ou un encadrant/admin peut télécharger
         if (Auth::id() !== $document->stagiaire_id && Auth::user()->role === 'stagiaire') {
             abort(403);
         }

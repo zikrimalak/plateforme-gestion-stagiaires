@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Document extends Model
 {
-    protected $fillable = ['stagiaire_id', 'type', 'nom_fichier', 'chemin_fichier', 'statut', 'commentaire'];
+    protected $fillable = ['stagiaire_id', 'type', 'nom_fichier', 'chemin_fichier', 'statut','texte_extrait', 'commentaire'];
 
 public function stagiaire()
 {
