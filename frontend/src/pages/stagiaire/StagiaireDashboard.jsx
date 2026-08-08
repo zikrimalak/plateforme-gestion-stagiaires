@@ -7,6 +7,7 @@ import {
   FileUp,
   MessageSquare,
   CalendarDays,
+  Bell,
 } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
 import ActionCard from "../../components/common/ActionCard";
@@ -17,6 +18,7 @@ export default function StagiaireDashboard() {
 
   const [sujetAffecte, setSujetAffecte] = useState(null);
   const [remarques, setRemarques] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState(null);
 
@@ -26,10 +28,14 @@ export default function StagiaireDashboard() {
   const [erreurDates, setErreurDates] = useState(null);
 
   const chargerDonnees = () => {
-    api.get('/stagiaire/dashboard-data')
-      .then((res) => {
-        setSujetAffecte(res.data.sujetAffecte);
-        setRemarques(res.data.remarques);
+    Promise.all([
+      api.get("/stagiaire/dashboard-data"),
+      api.get("/mes-notifications"),
+    ])
+      .then(([resDashboard, resNotifications]) => {
+        setSujetAffecte(resDashboard.data.sujetAffecte);
+        setRemarques(resDashboard.data.remarques);
+        setNotifications(resNotifications.data);
       })
       .catch(() => setErreur("Impossible de charger vos informations."))
       .finally(() => setChargement(false));
@@ -54,10 +60,21 @@ export default function StagiaireDashboard() {
       .finally(() => setEnvoiEnCours(false));
   };
 
-  // Convertit une date ISO ("2026-08-04T00:00:00.000000Z") en format français ("04/08/2026")
   const formaterDate = (dateIso) => {
     if (!dateIso) return "";
     return new Date(dateIso).toLocaleDateString("fr-FR");
+  };
+
+  // Format plus complet (avec heure) pour les notifications, plus récentes en premier
+  const formaterDateHeure = (dateIso) => {
+    if (!dateIso) return "";
+    return new Date(dateIso).toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -67,6 +84,25 @@ export default function StagiaireDashboard() {
         <h1 className="text-3xl font-bold text-primary-dark mb-6">Vue d'ensemble</h1>
 
         {erreur && <p className="text-red-600 text-sm mb-4">{erreur}</p>}
+
+        {!chargement && notifications.length > 0 && (
+          <div className="space-y-2 mb-8">
+            {notifications.map((n) => (
+              <div
+                key={n.id}
+                className="flex items-start gap-3 bg-accent/10 border border-accent-dark/20 rounded-xl px-4 py-3"
+              >
+                <Bell size={18} className="text-primary-dark mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-neutral-800">{n.contenu}</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {formaterDateHeure(n.date_envoi)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {!chargement && (
           sujetAffecte ? (
@@ -94,7 +130,6 @@ export default function StagiaireDashboard() {
                 </div>
               </div>
 
-              {/* Dates du stage */}
               {sujetAffecte.dateDebut && sujetAffecte.dateFin ? (
                 <div className="flex items-center gap-2 text-sm text-neutral-700 border-t border-accent-dark/20 pt-3">
                   <CalendarDays size={16} className="text-primary-dark" />

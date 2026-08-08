@@ -7,6 +7,7 @@ use App\Models\Candidature;
 use App\Models\Document;
 use App\Models\Sujet;
 use App\Models\Stage;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -96,6 +97,11 @@ class CandidatureController extends Controller
                 'sujet_id' => $candidature->sujet_id,
                 'candidature_id' => $candidature->id,
             ]);
+            Notification::create([
+            'user_id' => $candidature->stagiaire_id,
+            'type' => 'candidature_acceptee',
+            'contenu' => 'Votre candidature au sujet "' . $candidature->sujet->titre . '" a été acceptée !',
+        ]);
         });
 
         return response()->json(['message' => 'Candidature acceptée']);

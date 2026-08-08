@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SuiviHebdomadaireController;
 use App\Http\Controllers\StageController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AgentIAController;
+use App\Http\Controllers\NotificationController;
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
@@ -79,4 +80,5 @@ Route::middleware(['auth:sanctum', 'role:stagiaire'])->group(function () {
     Route::get('/stagiaire/dashboard-data', [DashboardController::class, 'stagiaire']);
     Route::patch('/mon-stage/dates', [StageController::class, 'mettreAJourDates']);
     Route::get('/stagiaire/sujets-recommandes', [AgentIAController::class, 'sujetsRecommandes']);
+    Route::get('/mes-notifications', [NotificationController::class, 'mesNotifications']);
 });
