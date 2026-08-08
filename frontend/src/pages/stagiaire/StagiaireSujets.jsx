@@ -1,10 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, AlertTriangle } from "lucide-react";
+import { ArrowLeft, User, AlertTriangle, Sparkles } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
 import api from "../../services/api";
 
 const TYPES_REQUIS = ["CV", "Lettre de motivation"];
+
+function couleurBadge(score) {
+  if (score >= 70) return "bg-green-50 text-green-600";
+  if (score >= 40) return "bg-orange-50 text-orange-600";
+  return "bg-red-50 text-red-500";
+}
 
 export default function StagiaireSujets() {
   const navigate = useNavigate();
@@ -14,9 +20,10 @@ export default function StagiaireSujets() {
   const [postulationEnCours, setPostulationEnCours] = useState(null);
   const [messagePostulation, setMessagePostulation] = useState("");
   const [typesManquants, setTypesManquants] = useState([]);
+  const [scores, setScores] = useState({}); // { sujet_id: { score, justification } }
+  const [avertissementIA, setAvertissementIA] = useState("");
 
   useEffect(() => {
-    // On charge les sujets ET les documents déjà déposés en parallèle
     Promise.all([api.get("/sujets"), api.get("/mes-documents")])
       .then(([resSujets, resDocuments]) => {
         setSujets(resSujets.data);
@@ -24,10 +31,30 @@ export default function StagiaireSujets() {
         const typesDeposes = new Set(resDocuments.data.map((doc) => doc.type));
         const manquants = TYPES_REQUIS.filter((type) => !typesDeposes.has(type));
         setTypesManquants(manquants);
+
+        if (manquants.length === 0) {
+          chargerRecommandations();
+        }
       })
       .catch(() => setErreur("Impossible de charger les sujets."))
       .finally(() => setLoading(false));
   }, []);
+
+  const chargerRecommandations = () => {
+    api
+      .get("/stagiaire/sujets-recommandes")
+      .then((res) => {
+        const map = {};
+        (res.data.sujets || []).forEach((s) => {
+          map[s.sujet_id] = { score: s.score, justification: s.justification };
+        });
+        setScores(map);
+        if (res.data.avertissement) setAvertissementIA(res.data.avertissement);
+      })
+      .catch(() => {
+        setAvertissementIA("Analyse IA momentanément indisponible.");
+      });
+  };
 
   const handlePostuler = async (sujetId) => {
     setPostulationEnCours(sujetId);
@@ -43,6 +70,15 @@ export default function StagiaireSujets() {
   };
 
   const peutPostuler = typesManquants.length === 0;
+
+  const sujetsTries = [...sujets].sort((a, b) => {
+    const scoreA = scores[a.id]?.score;
+    const scoreB = scores[b.id]?.score;
+    if (scoreA == null && scoreB == null) return 0;
+    if (scoreA == null) return 1;
+    if (scoreB == null) return -1;
+    return scoreB - scoreA;
+  });
 
   return (
     <>
@@ -77,6 +113,10 @@ export default function StagiaireSujets() {
           </div>
         )}
 
+        {avertissementIA && (
+          <p className="text-xs text-neutral-400 mb-4">{avertissementIA}</p>
+        )}
+
         {loading && <p className="text-neutral-500 text-sm">Chargement des sujets...</p>}
         {erreur && <p className="text-red-600 text-sm">{erreur}</p>}
         {messagePostulation && <p className="text-sm text-primary mb-4">{messagePostulation}</p>}
@@ -85,34 +125,61 @@ export default function StagiaireSujets() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {sujets.map((sujet) => (
-            <div
-              key={sujet.id}
-              className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-5 flex flex-col"
-            >
-              <h2 className="font-semibold text-neutral-800 mb-2">{sujet.titre}</h2>
-              <p className="text-neutral-500 text-sm mb-4 flex-1">{sujet.description}</p>
-              <div className="flex items-center gap-2 text-sm text-neutral-600 mb-4">
-                <User size={16} className="text-primary" />
-                {sujet.encadrant?.prenom} {sujet.encadrant?.nom}
-              </div>
-              <button
-                onClick={() => handlePostuler(sujet.id)}
-                disabled={
-                  sujet.statut === "verrouille" ||
-                  postulationEnCours === sujet.id ||
-                  !peutPostuler
-                }
-                className="w-full bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+          {sujetsTries.map((sujet) => {
+            const infoScore = scores[sujet.id];
+
+            return (
+              <div
+                key={sujet.id}
+                className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-5 flex flex-col"
               >
-                {sujet.statut === "verrouille"
-                  ? "Sujet pourvu"
-                  : postulationEnCours === sujet.id
-                  ? "Envoi..."
-                  : "Postuler"}
-              </button>
-            </div>
-          ))}
+                <div className="flex items-start justify-between mb-2">
+                  <h2 className="font-semibold text-neutral-800">{sujet.titre}</h2>
+                  {infoScore?.score != null && (
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ml-2 ${couleurBadge(
+                        infoScore.score
+                      )}`}
+                    >
+                      {infoScore.score}% pertinent
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-neutral-500 text-sm mb-2">{sujet.description}</p>
+
+                {infoScore?.justification && (
+                  <div className="flex items-start gap-1.5 bg-primary/5 rounded-lg px-3 py-2 mb-4">
+                    <Sparkles size={14} className="text-primary mt-0.5 shrink-0" />
+                    <p className="text-xs text-primary-dark italic">
+                      {infoScore.justification}
+                    </p>
+                  </div>
+                )}
+
+                <div className={`flex items-center gap-2 text-sm text-neutral-600 mb-4 ${!infoScore?.justification ? "mt-2" : ""}`}>
+                  <User size={16} className="text-primary" />
+                  {sujet.encadrant?.prenom} {sujet.encadrant?.nom}
+                </div>
+
+                <button
+                  onClick={() => handlePostuler(sujet.id)}
+                  disabled={
+                    sujet.statut === "verrouille" ||
+                    postulationEnCours === sujet.id ||
+                    !peutPostuler
+                  }
+                  className="w-full bg-primary hover:bg-primary-dark text-white text-sm font-medium py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed mt-auto"
+                >
+                  {sujet.statut === "verrouille"
+                    ? "Sujet pourvu"
+                    : postulationEnCours === sujet.id
+                    ? "Envoi..."
+                    : "Postuler"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </>
